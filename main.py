@@ -95,6 +95,8 @@ def generate_response(client: genai.Client, user_prompt: str, verbose: bool = Fa
             model=MODEL_NAME,
             contents=messages
         )
+        if not response.usage_metadata:
+            raise RuntimeError("Failed API response")
 
         if verbose:
             print(f"\n{'='*50}")
