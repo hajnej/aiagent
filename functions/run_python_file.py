@@ -1,5 +1,5 @@
-import subprocess
-import os
+import subprocess # Used to run external commands (like 'python script.py')
+import os # Standard library for file system operations
 
 def run_python_file(working_directory, file_path, args=[]):
     """
@@ -29,30 +29,36 @@ def run_python_file(working_directory, file_path, args=[]):
             return f'Error: File "{file_path}" not found.'
 
         # 3. Security Check: File extension
+        # We only allow executing .py files for safety
         if not file_path.endswith('.py'):
             return f'Error: "{file_path}" is not a Python file.'
 
         # Execute
         # We run from the working_directory, so we pass the file_path relative to it.
-        # file_path argument provided to this function is already relative to working_directory.
+        # This keeps imports working correctly (e.g. from pkg import ...)
         command = ["python", file_path] + args
         
+        # subprocess.run executes the command and waits for it to finish
         result = subprocess.run(
             command,
-            cwd=working_directory_absolute_path,
-            capture_output=True,
-            text=True,
-            timeout=30
+            cwd=working_directory_absolute_path, # Set the Current Working Directory
+            capture_output=True, # Capture what the script prints (stdout/stderr)
+            text=True, # Decode output as text (strings) instead of bytes
+            timeout=30 # Stop the process if it takes longer than 30 seconds
         )
 
         output_parts = []
         
+        # Collect Standard Output (normal print statements)
         output_parts.append(f"STDOUT: {result.stdout}")
+        # Collect Standard Error (error messages)
         output_parts.append(f"STDERR: {result.stderr}")
         
+        # Check if the script failed (non-zero exit code)
         if result.returncode != 0:
             output_parts.append(f"Process exited with code {result.returncode}")
             
+        # Handle case where nothing was printed
         if not result.stdout and not result.stderr:
             return "No output produced"
             

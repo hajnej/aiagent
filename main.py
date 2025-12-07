@@ -1,14 +1,15 @@
 """
 AI Code Assistant - A simple assistant using Google Gemini API.
 """
-import sys
-import os
-from typing import Tuple
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+import sys  # Used to access command line arguments passed to the script
+import os   # Used to interact with the operating system (e.g., reading environment variables)
+from typing import Tuple # Used for type hinting (specifying what kind of data functions return)
+from dotenv import load_dotenv # Used to load configuration from a .env file (keeps secrets safe)
+from google import genai # The official Google Gen AI library
+from google.genai import types # Specific data types from the library
 
 # Constants
+# We define constants at the top level to make them easy to change later
 MODEL_NAME = "gemini-2.0-flash-001"
 
 
@@ -32,20 +33,25 @@ def parse_args(args: list[str]) -> Tuple[str, bool]:
     Raises:
         ValueError: If no arguments are provided
     """
+    # Check if the list of arguments is empty
     if not args:
         print_usage()
         raise ValueError("No prompt provided")
 
-    # Copy the list to avoid modifying the original
+    # Copy the list to avoid modifying the original list passed to the function
+    # This is a good practice to prevent side effects
     args_copy = args.copy()
 
-    # Parse --verbose flag
+    # Check if the "--verbose" flag is present in the arguments
     verbose = "--verbose" in args_copy
     if verbose:
+        # Remove the flag so it doesn't become part of the prompt text
         args_copy.remove("--verbose")
 
+    # Join the remaining arguments into a single string to form the prompt
     user_prompt = " ".join(args_copy)
 
+    # .strip() removes leading/trailing whitespace. If the result is empty, the prompt is invalid.
     if not user_prompt.strip():
         raise ValueError("Prompt cannot be empty")
 
@@ -62,7 +68,10 @@ def get_api_client() -> genai.Client:
     Raises:
         ValueError: If API key is not set
     """
+    # Load environment variables from a .env file into os.environ
     load_dotenv()
+    
+    # Retrieve the API key safely. It returns None if the key doesn't exist.
     api_key = os.environ.get("GEMINI_API_KEY")
 
     if not api_key:
@@ -71,6 +80,7 @@ def get_api_client() -> genai.Client:
             "Create a .env file with: GEMINI_API_KEY=your_key"
         )
 
+    # Initialize and return the client using the key
     return genai.Client(api_key=api_key)
 
 
@@ -86,18 +96,23 @@ def generate_response(client: genai.Client, user_prompt: str, verbose: bool = Fa
     Raises:
         Exception: On API communication error
     """
+    # Prepare the message in the format expected by the API
     messages = [
         types.Content(role="user", parts=[types.Part(text=user_prompt)])
     ]
 
     try:
+        # Make the network call to Google's servers
         response = client.models.generate_content(
             model=MODEL_NAME,
             contents=messages
         )
+        
+        # Verify we got valid usage metadata back
         if not response.usage_metadata:
             raise RuntimeError("Failed API response")
 
+        # If verbose mode is on, print details about token usage (cost related)
         if verbose:
             print(f"\n{'='*50}")
             print(f"Prompt: {user_prompt}")
@@ -105,28 +120,36 @@ def generate_response(client: genai.Client, user_prompt: str, verbose: bool = Fa
             print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
             print(f"{'='*50}\n")
 
+        # Print the actual text response from the AI
         print(response.text)
 
     except Exception as e:
+        # Re-raise the exception with a clear message so the main function can handle it
         raise Exception(f"API communication error: {str(e)}")
 
 
 def main() -> None:
     """Main program function."""
     try:
+        # sys.argv[0] is the script name (main.py), so we start from index 1 to get arguments
         args = sys.argv[1:]
+        
+        # Unpack the tuple returned by parse_args into two variables
         user_prompt, verbose = parse_args(args)
 
         client = get_api_client()
         generate_response(client, user_prompt, verbose)
 
     except ValueError as e:
+        # Print expected errors (like missing args) to stderr
         print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(1) # Exit with a non-zero status code to indicate failure
     except Exception as e:
+        # Catch-all for unexpected errors
         print(f"Unexpected error: {e}", file=sys.stderr)
         sys.exit(2)
 
 
+# This block ensures main() runs only if the file is executed directly (not imported)
 if __name__ == "__main__":
     main()
