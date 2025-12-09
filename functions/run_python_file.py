@@ -1,5 +1,28 @@
 import subprocess # Used to run external commands (like 'python script.py')
 import os # Standard library for file system operations
+from google.genai import types # Import necessary types for function declaration
+
+# Define the schema for the run_python_file function to be exposed to the LLM
+schema_run_python_file = types.FunctionDeclaration(
+    name="run_python_file",
+    description="Execute a Python file securely within a constrained working directory.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="Relative path to the Python file within the working directory",
+            ),
+            "args": types.Schema(
+                type=types.Type.ARRAY,
+                items=types.Schema(type=types.Type.STRING),
+                description="List of command line arguments to pass to the script",
+            ),
+        },
+        required=["file_path"],
+    ),
+)
+
 
 def run_python_file(working_directory, file_path, args=[]):
     """

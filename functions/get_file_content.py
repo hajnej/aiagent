@@ -1,5 +1,23 @@
 import os # Standard library for operating system interactions (paths, files)
+from google.genai import types # Import necessary types for function declaration
 from config import MAX_CHARS # Import our limit constant
+
+# Define the schema for the get_file_content function to be exposed to the LLM
+schema_get_file_content = types.FunctionDeclaration(
+    name="get_file_content",
+    description="Read the content of a file within the working directory.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="Relative path to the file within the working directory",
+            ),
+        },
+        required=["file_path"],
+    ),
+)
+
 
 def get_file_content(working_directory, file_path):
     """

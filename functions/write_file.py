@@ -1,4 +1,26 @@
 import os # Standard library for file system operations
+from google.genai import types # Import necessary types for function declaration
+
+# Define the schema for the write_file function to be exposed to the LLM
+schema_write_file = types.FunctionDeclaration(
+    name="write_file",
+    description="Write content to a file within the working directory.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="Relative path to the file within the working directory",
+            ),
+            "content": types.Schema(
+                type=types.Type.STRING,
+                description="The content to write to the file",
+            ),
+        },
+        required=["file_path", "content"],
+    ),
+)
+
 
 def write_file(working_directory, file_path, content):
     """
