@@ -7,10 +7,17 @@ from typing import Tuple # Used for type hinting (specifying what kind of data f
 from dotenv import load_dotenv # Used to load configuration from a .env file (keeps secrets safe)
 from google import genai # The official Google Gen AI library
 from google.genai import types # Specific data types from the library
+from prompts import system_prompt # Import the system instruction
+from functions.get_files_info import schema_get_files_info # Import the function schema
 
 # Constants
 # We define constants at the top level to make them easy to change later
-MODEL_NAME = "gemini-2.0-flash-001"
+MODEL_NAME = "gemini-2.5-flash"
+
+# Define the tools available to the LLM
+available_functions = types.Tool(
+    function_declarations=[schema_get_files_info],
+)
 
 
 def print_usage() -> None:
@@ -105,7 +112,11 @@ def generate_response(client: genai.Client, user_prompt: str, verbose: bool = Fa
         # Make the network call to Google's servers
         response = client.models.generate_content(
             model=MODEL_NAME,
-            contents=messages
+            contents=messages,
+            config=types.GenerateContentConfig(
+                tools=[available_functions], # Register our defined tools
+                system_instruction=system_prompt,
+            ),
         )
         
         # Verify we got valid usage metadata back
@@ -120,8 +131,13 @@ def generate_response(client: genai.Client, user_prompt: str, verbose: bool = Fa
             print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
             print(f"{'='*50}\n")
 
-        # Print the actual text response from the AI
-        print(response.text)
+        # Check if the model decided to call a function
+        if response.function_calls:
+            for fc in response.function_calls:
+                print(f"Calling function: {fc.name} ({fc.args})")
+        else:
+            # Print the actual text response from the AI
+            print(response.text)
 
     except Exception as e:
         # Re-raise the exception with a clear message so the main function can handle it
